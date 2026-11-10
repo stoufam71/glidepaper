@@ -18,6 +18,8 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
     private val store = GameStore(app)
     private val tones = TonePlayer()
     private val feedback = Feedback(app, tones::play)
+    private val music = MusicPlayer(app)
+    private var foreground = false
 
     /** Bumped every tick so the canvas redraws. */
     var frame by mutableLongStateOf(0L)
@@ -53,9 +55,19 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
     fun toggleMute() {
         muted = !muted
         store.muted = muted
+        music.update(foreground, muted)
     }
 
-    override fun onCleared() = tones.release()
+    /** Music follows the activity: on while it is resumed, off when it pauses. */
+    fun setForeground(value: Boolean) {
+        foreground = value
+        music.update(foreground, muted)
+    }
+
+    override fun onCleared() {
+        tones.release()
+        music.release()
+    }
 
     private fun sync() {
         for (event in engine.drainEvents()) {

@@ -36,7 +36,14 @@ class MainActivity : ComponentActivity() {
 
         // Never let the plane fly unseen: backgrounding, calls and lost focus all pause.
         lifecycle.addObserver(LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_PAUSE) viewModel.pause()
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> {
+                    viewModel.pause()
+                    viewModel.setForeground(false)
+                }
+                Lifecycle.Event.ON_RESUME -> viewModel.setForeground(true)
+                else -> Unit
+            }
         })
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
