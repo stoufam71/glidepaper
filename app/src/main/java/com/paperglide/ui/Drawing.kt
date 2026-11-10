@@ -48,7 +48,7 @@ class Stars {
     }
 }
 
-fun DrawScope.drawWorld(engine: GameEngine, plane: PlaneShapes, stars: Stars) {
+fun DrawScope.drawWorld(engine: GameEngine, plane: PlaneShapes, stars: Stars, traffic: SkyTraffic, airliner: AirlinerShapes) {
     val s = size.height
     val sky = DayCycle.at(engine.playTime)
     // shortcut: one small gradient object per frame; cache by colour if GC shows up on low-end TV boxes
@@ -71,38 +71,45 @@ fun DrawScope.drawWorld(engine: GameEngine, plane: PlaneShapes, stars: Stars) {
         drawCircle(sky.sunColor, 0.065f * s, sun)
     }
 
-    // Far clouds drift slowly for depth; they take the sky's tint.
-    val farCloud = sky.cloud.copy(alpha = 0.4f - 0.15f * sky.night)
+    // Far clouds drift slowly for depth; they take the sky's tint and every other one has a face.
+    // Opaque blends of cloud and sky, so overlapping puffs show no seams.
+    val farCloud = lerp(sky.top, sky.cloud, 0.8f - 0.3f * sky.night)
+    val farShade = lerp(farCloud, sky.top, 0.3f)
     val worldWidth = size.width / s
     for (i in 0 until 4) {
         val span = worldWidth + 0.5f
         val x = ((i * 0.47f + 0.2f) - engine.time * 0.03f).mod(span) - 0.25f
         val y = 0.12f + (i % 3) * 0.16f
-        drawCircle(farCloud, 0.07f * s, Offset(x * s, y * s))
-        drawCircle(farCloud, 0.05f * s, Offset((x + 0.07f) * s, (y + 0.015f) * s))
+        val u = (0.075f + 0.02f * (i % 2)) * s
+        drawFluffyCloud(Offset(x * s, y * s), u, farCloud, farShade, face = i % 2 == 0, sleepy = sky.night > 0.5f)
     }
+
+    for (f in traffic.flyers) drawFlyer(f, s, engine.time, sky.night, airliner)
+
+    // Pillars stay inside their collision rectangle so every hit looks fair: puffy ends are drawn within it.
     val pillarCloud = lerp(Color.White, sky.cloud, 0.6f)
     val pillarShade = lerp(Palette.CloudShade, sky.cloud, 0.5f).copy(alpha = 1f)
-
-    // Pillars stay inside their collision rectangle so every hit looks fair.
+    val highlight = Color.White.copy(alpha = 0.55f * (1f - 0.6f * sky.night))
     for (p in engine.pillars) {
         val left = p.x * s
         val w = PILLAR_WIDTH * s
+        val r = w / 4
         val top = (p.gapCenter - p.gapHeight / 2) * s
         val bottom = (p.gapCenter + p.gapHeight / 2) * s
         val ground = GROUND_TOP * s
-        val r = CornerRadius(w * 0.18f, w * 0.18f)
-        drawRoundRect(pillarCloud, Offset(left, -w), Size(w, top + w), r)
-        drawRoundRect(pillarCloud, Offset(left, bottom), Size(w, ground - bottom + w), r)
-        drawRect(pillarShade, Offset(left + w * 0.78f, 0f), Size(w * 0.22f, top - w * 0.18f))
-        drawRect(pillarShade, Offset(left + w * 0.78f, bottom + w * 0.18f), Size(w * 0.22f, ground - bottom))
-        // Scalloped gap edges read as cloud puffs.
-        val puff = w / 6
-        for (i in 0 until 3) {
-            val cx = left + puff * (1 + 2 * i)
-            drawCircle(pillarShade, puff * 0.55f, Offset(cx, top - puff))
-            drawCircle(pillarShade, puff * 0.55f, Offset(cx, bottom + puff))
+        // Body, a shaded right side, then three puffs whose outer edge sits exactly on the gap edge.
+        drawRect(pillarCloud, Offset(left, 0f), Size(w, top - r))
+        drawRect(pillarCloud, Offset(left, bottom + r), Size(w, ground - bottom - r))
+        drawRect(pillarShade, Offset(left + w * 0.8f, 0f), Size(w * 0.2f, top - r))
+        drawRect(pillarShade, Offset(left + w * 0.8f, bottom + r), Size(w * 0.2f, ground - bottom - r))
+        for (k in 0 until 3) {
+            val cx = left + r * (1 + k)
+            drawCircle(pillarCloud, r, Offset(cx, top - r))
+            drawCircle(pillarCloud, r, Offset(cx, bottom + r))
         }
+        drawCircle(highlight, r * 0.35f, Offset(left + r * 0.8f, bottom + r * 0.7f))
+        drawCuteFace(Offset(left + w / 2, top - r * 0.9f), w * 0.55f, 1f, sleepy = sky.night > 0.5f)
+        drawCuteFace(Offset(left + w / 2, bottom + r * 1.1f), w * 0.55f, 1f, sleepy = sky.night > 0.5f)
     }
 
     drawRect(lerp(Palette.Ground, Palette.NightGround, sky.night), Offset(0f, GROUND_TOP * s), Size(size.width, size.height - GROUND_TOP * s))

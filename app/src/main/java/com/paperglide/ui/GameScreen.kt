@@ -67,13 +67,19 @@ fun GameScreen(vm: GameViewModel, onMuteFocus: (Boolean) -> Unit = {}) {
     var aspect by remember { mutableFloatStateOf(0.5625f) }
     val plane = remember { PlaneShapes() }
     val stars = remember { Stars() }
+    val traffic = remember { SkyTraffic() }
+    val airliner = remember { AirlinerShapes() }
     val playFocus = remember { FocusRequester() }
 
     LaunchedEffect(vm) {
         var last = -1L
         while (true) {
             withFrameNanos { now ->
-                if (last >= 0) vm.tick((now - last) / 1e9f, aspect)
+                if (last >= 0) {
+                    val dt = ((now - last) / 1e9f).coerceAtMost(GameEngine.MAX_DT)
+                    if (vm.phase != Phase.Paused) traffic.update(dt, aspect, DayCycle.at(vm.engine.playTime).night)
+                    vm.tick(dt, aspect)
+                }
                 last = now
             }
         }
@@ -93,7 +99,7 @@ fun GameScreen(vm: GameViewModel, onMuteFocus: (Boolean) -> Unit = {}) {
                 .pointerInput(vm) { awaitEachGesture { awaitFirstDown(); vm.flap() } },
         ) {
             vm.frame // redraw every tick
-            drawWorld(vm.engine, plane, stars)
+            drawWorld(vm.engine, plane, stars, traffic, airliner)
         }
 
         // Holds D-pad focus during play so TV OK flaps instead of landing on the mute button.
