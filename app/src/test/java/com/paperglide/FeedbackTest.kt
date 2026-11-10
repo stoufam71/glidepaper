@@ -11,7 +11,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
-import kotlin.math.abs
 
 @RunWith(RobolectricTestRunner::class)
 class FeedbackTest {
@@ -23,20 +22,14 @@ class FeedbackTest {
     private val feedback = Feedback(context) { played += it }
 
     @Test
-    fun tonesAreShortAndClickFree() {
+    fun eachEventPlaysItsOwnSound() {
+        val tones = TonePlayer(context)
+        assertEquals(GameEvent.entries.size, GameEvent.entries.map(TonePlayer::rawFor).toSet().size)
         for (event in GameEvent.entries) {
-            val pcm = Tones.forEvent(event)
-            assertTrue(pcm.isNotEmpty())
-            assertTrue(pcm.size < Tones.SAMPLE_RATE / 2)
-            assertTrue(abs(pcm.first().toInt()) < Short.MAX_VALUE / 20)
-            assertTrue(abs(pcm.last().toInt()) < Short.MAX_VALUE / 20)
+            tones.play(event)
+            assertTrue(shadowOf(tones.pool).wasResourcePlayed(TonePlayer.rawFor(event)))
         }
-    }
-
-    @Test
-    fun eachEventSoundsDifferent() {
-        val (a, b, c) = GameEvent.entries.map { Tones.forEvent(it).toList() }
-        assertTrue(a != b && b != c && a != c)
+        tones.release()
     }
 
     @Test

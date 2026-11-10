@@ -16,7 +16,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
 
     val engine = GameEngine()
     private val store = GameStore(app)
-    private val tones = TonePlayer()
+    private val tones = TonePlayer(app)
     private val feedback = Feedback(app, tones::play)
     private val music = MusicPlayer(app)
     private var foreground = false

@@ -2,16 +2,13 @@ package com.paperglide
 
 import android.content.Context
 import android.media.AudioAttributes
-import android.media.AudioFormat
-import android.media.AudioTrack
+import android.media.SoundPool
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import androidx.annotation.VisibleForTesting
 import com.paperglide.game.GameEvent
-import kotlin.math.PI
-import kotlin.math.sin
-import kotlin.random.Random
 
 /** Sound for every event through [play], and a short buzz on crash. */
 class Feedback(context: Context, private val play: (GameEvent) -> Unit) {
@@ -39,76 +36,37 @@ class Feedback(context: Context, private val play: (GameEvent) -> Unit) {
     }
 }
 
-/** One preloaded static AudioTrack per event. */
-class TonePlayer {
+/**
+ * Original sound effects made in SoundCraft, in F major to sit with the music
+ * (see docs/CREDITS.md): a paper swish for a flap, a C–F–A chime for a point and a falling
+ * thud for a crash. A sound that fails to load simply stays silent.
+ */
+class TonePlayer(context: Context) {
 
-    private val tracks: Map<GameEvent, AudioTrack?> = GameEvent.entries.associateWith { build(Tones.forEvent(it)) }
+    @VisibleForTesting
+    internal val pool: SoundPool = SoundPool.Builder()
+        .setMaxStreams(4) // rapid flaps overlap instead of cutting each other off
+        .setAudioAttributes(
+            AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_GAME)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build(),
+        )
+        .build()
+
+    private val sounds: Map<GameEvent, Int> = GameEvent.entries.associateWith { pool.load(context, rawFor(it), 1) }
 
     fun play(event: GameEvent) {
-        val track = tracks[event] ?: return
-        track.stop()
-        track.reloadStaticData()
-        track.play()
+        pool.play(sounds.getValue(event), 1f, 1f, if (event == GameEvent.Crash) 2 else 1, 0, 1f)
     }
 
-    fun release() = tracks.values.forEach { it?.release() }
+    fun release() = pool.release()
 
-    // Audio hardware can refuse a track; the game then simply plays silent.
-    private fun build(pcm: ShortArray): AudioTrack? {
-        val track = create(pcm) ?: return null
-        if (track.state == AudioTrack.STATE_INITIALIZED) return track
-        track.release()
-        return null
-    }
-
-    private fun create(pcm: ShortArray): AudioTrack? = runCatching {
-        AudioTrack.Builder()
-            .setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_GAME)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build(),
-            )
-            .setAudioFormat(
-                AudioFormat.Builder()
-                    .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                    .setSampleRate(Tones.SAMPLE_RATE)
-                    .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-                    .build(),
-            )
-            .setTransferMode(AudioTrack.MODE_STATIC)
-            .setBufferSizeInBytes(pcm.size * 2)
-            .build()
-            .also { it.write(pcm, 0, pcm.size) }
-    }.getOrNull()
-}
-
-/** Original sound effects generated as 16-bit mono PCM. */
-object Tones {
-    const val SAMPLE_RATE = 22050
-
-    private val flap = sweep(seconds = 0.09f, fromHz = 320f, toHz = 720f, noise = 0.25f)
-    private val score = sweep(0.06f, 880f, 880f) + sweep(0.09f, 1320f, 1320f)
-    private val crash = sweep(seconds = 0.28f, fromHz = 200f, toHz = 55f, noise = 0.6f)
-
-    fun forEvent(event: GameEvent): ShortArray = when (event) {
-        GameEvent.Flap -> flap
-        GameEvent.Score -> score
-        GameEvent.Crash -> crash
-    }
-
-    /** A sine glide with optional noise, shaped by a short attack and a linear fade to silence. */
-    private fun sweep(seconds: Float, fromHz: Float, toHz: Float, noise: Float = 0f): ShortArray {
-        val n = (seconds * SAMPLE_RATE).toInt()
-        val attack = SAMPLE_RATE / 200
-        val random = Random(n)
-        var phase = 0.0
-        return ShortArray(n) { i ->
-            val t = i.toFloat() / n
-            phase += 2 * PI * (fromHz + (toHz - fromHz) * t) / SAMPLE_RATE
-            val envelope = minOf(1f, i.toFloat() / attack) * (1f - t)
-            val sample = (1 - noise) * sin(phase).toFloat() + noise * (random.nextFloat() * 2 - 1)
-            (sample * envelope * 0.35f * Short.MAX_VALUE).toInt().toShort()
+    companion object {
+        fun rawFor(event: GameEvent): Int = when (event) {
+            GameEvent.Flap -> R.raw.sfx_flap
+            GameEvent.Score -> R.raw.sfx_score
+            GameEvent.Crash -> R.raw.sfx_crash
         }
     }
 }
