@@ -18,7 +18,58 @@ Tap (or press OK) to lift the plane and glide through the gaps in the cloud pill
 | Quit | Back while paused | Back while paused |
 | Mute | Speaker button (top right) | Move focus to the speaker with the D-pad, then OK; Left/Down returns to the game |
 
-## Requirements
+## Download and install (no Android SDK needed)
+
+Get `paper-glide.apk` from the repository's **Releases** page. The latest one is always at
+`https://github.com/<owner>/<repo>/releases/latest/download/paper-glide.apk`.
+
+- **Phone:** open the link on the phone, download, tap the file, and allow "Install unknown apps"
+  for your browser or file manager when Android asks.
+- **Android TV / Google TV:** install a file manager or the *Downloader* app from the TV's app store,
+  open the APK link in it, and allow it to install unknown apps when asked.
+  Or download the APK on a computer and use the `adb` steps below.
+
+New releases install over old ones and keep your best score.
+
+## Releases (CI/CD)
+
+`.github/workflows/android.yml` runs on every push to `main`, every pull request, and manual runs.
+It tests, lints and builds a signed release APK. Each run attaches the APK as the `paper-glide-apk`
+artifact; downloading artifacts needs a GitHub login.
+
+To publish a release anyone can download, push a version tag:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+The workflow then creates a GitHub Release `v1.0.0` with `paper-glide.apk` attached.
+`versionName` comes from the tag, and `versionCode` from the workflow run number, so each release can update the one before.
+
+### One-time signing setup (maintainer)
+
+Android only installs an update when it is signed with the same key as the installed app. Create one release key and keep it safe:
+
+```bash
+keytool -genkeypair -v -keystore paper-glide-release.jks -alias paper-glide \
+  -keyalg RSA -keysize 4096 -validity 10000
+base64 -i paper-glide-release.jks | pbcopy      # macOS; Linux: base64 -w0 paper-glide-release.jks
+```
+
+Add these in GitHub under **Settings → Secrets and variables → Actions → New repository secret**:
+
+| Secret | Value |
+|---|---|
+| `SIGNING_KEYSTORE_BASE64` | the base64 text copied above |
+| `SIGNING_STORE_PASSWORD` | keystore password |
+| `SIGNING_KEY_ALIAS` | `paper-glide` |
+| `SIGNING_KEY_PASSWORD` | key password |
+
+Never commit the `.jks` file (it is in `.gitignore`). If you lose it, users must uninstall the app (losing their best score) before they can install a build signed with a new key.
+Without these secrets the workflow still builds, but signs with a throwaway debug key and shows a warning.
+
+## Requirements (building from source)
 
 - JDK 21 (Gradle toolchain), Android SDK with platform 37 and build tools.
 - `adb` on `PATH` (Android SDK `platform-tools`).
@@ -32,6 +83,7 @@ The Gradle wrapper is checked in, so no separate Gradle install is needed.
 ./gradlew testDebugUnitTest   # unit + Robolectric UI tests
 ./gradlew lintDebug           # lint
 ./gradlew assembleDebug       # APK at app/build/outputs/apk/debug/app-debug.apk
+./gradlew assembleRelease     # release APK; signed with SIGNING_* env vars if set, else the debug key
 ```
 
 ## Install on a device (for agents and humans)
