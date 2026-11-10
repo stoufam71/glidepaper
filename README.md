@@ -18,9 +18,6 @@ Tap (or press OK) to lift the plane and glide through the gaps in the cloud pill
 | Quit | Back while paused | Back while paused |
 | Mute | Speaker button (top right) | Move focus to the speaker with the D-pad, then OK; Left/Down returns to the game |
 
-Easter egg: on the start screen, press `1` four times or D-pad Down four times within 2 seconds
-(on a phone, tap the speaker button four times quickly). The plane then flies itself and never loses.
-
 ## Requirements
 
 - JDK 21 (Gradle toolchain), Android SDK with platform 37 and build tools.
@@ -122,7 +119,7 @@ dscacheutil -q host -a name <host>.local           # resolves the host name to a
 app/src/main/java/com/paperglide/
   MainActivity.kt        key handling, back, lifecycle, TV vs phone orientation
   GameViewModel.kt       game state for the UI, sound, haptics, music, saved best
-  game/                  pure-Kotlin engine: physics, pillars, scoring, difficulty, autopilot
+  game/                  pure-Kotlin engine: physics, pillars, scoring, difficulty
   ui/                    Compose screen, dialogs, sky, clouds, meadow, passers-by
 app/src/test/            unit and Robolectric tests
 docs/                    plan, credits, solved-problem notes
