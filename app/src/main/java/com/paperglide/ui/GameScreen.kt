@@ -29,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
@@ -76,7 +77,9 @@ fun GameScreen(vm: GameViewModel, onMuteFocus: (Boolean) -> Unit = {}) {
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         // Text scales with screen height so it reads the same in hand and across a room.
-        val unit = with(LocalDensity.current) { (maxHeight.toPx() * 0.045f).toSp().value }
+        val unit = with(LocalDensity.current) {
+            minOf(maxHeight.toPx() * 0.032f, maxWidth.toPx() * 0.06f).toSp().value
+        }
 
         Canvas(
             Modifier
@@ -97,8 +100,8 @@ fun GameScreen(vm: GameViewModel, onMuteFocus: (Boolean) -> Unit = {}) {
                 Label("${vm.score}", unit * 1.6f, Modifier.align(Alignment.TopCenter).padding(top = 16.dp))
             }
             when (vm.phase) {
-                Phase.Ready -> Hint("Tap or press OK to fly", unit, Modifier.align(Alignment.Center))
-                Phase.Paused -> Hint("Paused\nTap or press OK to go on\nBack again to quit", unit, Modifier.align(Alignment.Center))
+                Phase.Ready -> Hint("Tap or press OK to fly", unit, Modifier.align(BelowPlane))
+                Phase.Paused -> Hint("Paused\nTap or press OK to go on\nBack again to quit", unit, Modifier.align(BelowPlane))
                 Phase.GameOver -> GameOverCard(
                     vm.score, vm.best, vm.newBest, Difficulty.medal(vm.score), unit,
                     Modifier.align(Alignment.Center),
@@ -109,6 +112,9 @@ fun GameScreen(vm: GameViewModel, onMuteFocus: (Boolean) -> Unit = {}) {
         }
     }
 }
+
+/** Hints sit under the plane's hover height so they never cover it. */
+private val BelowPlane = BiasAlignment(0f, 0.35f)
 
 @Composable
 private fun Label(text: String, size: Float, modifier: Modifier = Modifier, color: Color = Palette.Ink) {

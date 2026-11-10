@@ -22,7 +22,7 @@ object Palette {
     val SkyBottom = Color(0xFFDDF3FF)
     val Cloud = Color(0xFFFFFFFF)
     val CloudShade = Color(0xFFDCEAF6)
-    val FarCloud = Color(0x99FFFFFF)
+    val FarCloud = Color(0x66FFFFFF)
     val Ground = Color(0xFFB7E86A)
     val GroundStripe = Color(0xFF9FD458)
     val PlaneLight = Color(0xFFFFFFFF)
@@ -52,19 +52,25 @@ fun DrawScope.drawWorld(engine: GameEngine, sky: Brush, plane: PlaneShapes) {
         drawCircle(Palette.FarCloud, 0.05f * s, Offset((x + 0.07f) * s, (y + 0.015f) * s))
     }
 
+    // Pillars stay inside their collision rectangle so every hit looks fair.
     for (p in engine.pillars) {
         val left = p.x * s
         val w = PILLAR_WIDTH * s
         val top = (p.gapCenter - p.gapHeight / 2) * s
         val bottom = (p.gapCenter + p.gapHeight / 2) * s
-        val r = CornerRadius(w / 2, w / 2)
-        drawRoundRect(Palette.CloudShade, Offset(left + w * 0.08f, -w), Size(w, top + w), r)
+        val ground = GROUND_TOP * s
+        val r = CornerRadius(w * 0.18f, w * 0.18f)
         drawRoundRect(Palette.Cloud, Offset(left, -w), Size(w, top + w), r)
-        drawRoundRect(Palette.CloudShade, Offset(left + w * 0.08f, bottom), Size(w, GROUND_TOP * s - bottom + w), r)
-        drawRoundRect(Palette.Cloud, Offset(left, bottom), Size(w, GROUND_TOP * s - bottom + w), r)
-        // Puffs at the gap edges make the pillars read as clouds.
-        drawCircle(Palette.Cloud, w * 0.32f, Offset(left + w * 0.15f, top - w * 0.12f))
-        drawCircle(Palette.Cloud, w * 0.32f, Offset(left + w * 0.85f, bottom + w * 0.12f))
+        drawRoundRect(Palette.Cloud, Offset(left, bottom), Size(w, ground - bottom + w), r)
+        drawRect(Palette.CloudShade, Offset(left + w * 0.78f, 0f), Size(w * 0.22f, top - w * 0.18f))
+        drawRect(Palette.CloudShade, Offset(left + w * 0.78f, bottom + w * 0.18f), Size(w * 0.22f, ground - bottom))
+        // Scalloped gap edges read as cloud puffs.
+        val puff = w / 6
+        for (i in 0 until 3) {
+            val cx = left + puff * (1 + 2 * i)
+            drawCircle(Palette.CloudShade, puff * 0.55f, Offset(cx, top - puff))
+            drawCircle(Palette.CloudShade, puff * 0.55f, Offset(cx, bottom + puff))
+        }
     }
 
     drawRect(Palette.Ground, Offset(0f, GROUND_TOP * s), Size(size.width, size.height - GROUND_TOP * s))
