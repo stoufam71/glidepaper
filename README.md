@@ -20,8 +20,8 @@ Tap (or press OK) to lift the plane and glide through the gaps in the cloud pill
 
 ## Download and install (no Android SDK needed)
 
-Get `paper-glide.apk` from the repository's **Releases** page. The latest one is always at
-`https://github.com/<owner>/<repo>/releases/latest/download/paper-glide.apk`.
+Get `paper-glide.apk` from the [Releases page](https://github.com/stoufam71/glidepaper/releases). The latest one is always at
+`https://github.com/stoufam71/glidepaper/releases/latest/download/paper-glide.apk`.
 
 - **Phone:** open the link on the phone, download, tap the file, and allow "Install unknown apps"
   for your browser or file manager when Android asks.
