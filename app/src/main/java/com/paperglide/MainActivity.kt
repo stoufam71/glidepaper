@@ -1,5 +1,6 @@
 package com.paperglide
 
+import android.annotation.SuppressLint
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.os.Bundle
@@ -47,6 +48,8 @@ class MainActivity : ComponentActivity() {
         setContent { GameScreen(viewModel, onMuteFocus = { muteFocused = it }) }
     }
 
+    // Activity.dispatchKeyEvent is public; lint trips on ComponentActivity's @RestrictTo override.
+    @SuppressLint("RestrictedApi")
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         val code = event.keyCode
         if (!KeyMapping.isFlapKey(code) || (muteFocused && KeyMapping.isSelectKey(code))) {
