@@ -33,6 +33,9 @@ class GameEngine(private val random: Random = Random.Default) {
     /** Seconds of actual play this round; drives the day/night sky. */
     var playTime = 0f
         private set
+    /** World distance scrolled since launch; the ground pattern follows it so it never jumps. */
+    var distance = 0f
+        private set
 
     /** Visible world width; pillars spawn just past it. */
     var visibleWidth = 0.5625f
@@ -120,6 +123,7 @@ class GameEngine(private val random: Random = Random.Default) {
         planeY += velocity * dt
 
         val dx = Difficulty.speed(score) * dt
+        distance += dx
         for (p in _pillars) {
             p.x -= dx
             if (!p.scored && p.x + PILLAR_WIDTH < PLANE_X) {

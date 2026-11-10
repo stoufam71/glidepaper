@@ -1,5 +1,12 @@
 package com.paperglide.ui
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -11,6 +18,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -68,6 +76,7 @@ fun GameScreen(vm: GameViewModel, onMuteFocus: (Boolean) -> Unit = {}) {
     val plane = remember { PlaneShapes() }
     val stars = remember { Stars() }
     val traffic = remember { SkyTraffic() }
+    val critters = remember { Critters() }
     val airliner = remember { AirlinerShapes() }
     val playFocus = remember { FocusRequester() }
 
@@ -77,8 +86,13 @@ fun GameScreen(vm: GameViewModel, onMuteFocus: (Boolean) -> Unit = {}) {
             withFrameNanos { now ->
                 if (last >= 0) {
                     val dt = ((now - last) / 1e9f).coerceAtMost(GameEngine.MAX_DT)
-                    if (vm.phase != Phase.Paused) traffic.update(dt, aspect, DayCycle.at(vm.engine.playTime).night)
+                    val night = DayCycle.at(vm.engine.playTime).night
+                    val before = vm.engine.distance
                     vm.tick(dt, aspect)
+                    if (vm.phase != Phase.Paused) {
+                        traffic.update(dt, aspect, night)
+                        critters.update(dt, aspect, night, vm.engine.distance - before)
+                    }
                 }
                 last = now
             }
@@ -99,8 +113,11 @@ fun GameScreen(vm: GameViewModel, onMuteFocus: (Boolean) -> Unit = {}) {
                 .pointerInput(vm) { awaitEachGesture { awaitFirstDown(); vm.flap() } },
         ) {
             vm.frame // redraw every tick
-            drawWorld(vm.engine, plane, stars, traffic, airliner)
+            drawWorld(vm.engine, plane, stars, traffic, airliner, critters)
         }
+
+        // Dims the frozen world so the pause card reads as on top of it.
+        if (vm.phase == Phase.Paused) Box(Modifier.fillMaxSize().background(Palette.Ink.copy(alpha = 0.3f)))
 
         // Holds D-pad focus during play so TV OK flaps instead of landing on the mute button.
         Box(Modifier.align(Alignment.CenterStart).size(1.dp).focusRequester(playFocus).focusable())
@@ -118,7 +135,7 @@ fun GameScreen(vm: GameViewModel, onMuteFocus: (Boolean) -> Unit = {}) {
                 Phase.Ready -> Box(Modifier.width(freeSky).fillMaxHeight()) {
                     Hint("Tap or press OK to fly", unit, Modifier.align(BelowPlane))
                 }
-                Phase.Paused -> Hint("Paused\nTap or press OK to go on\nBack again to quit", unit, Modifier.align(BelowPlane))
+                Phase.Paused -> PauseCard(unit, Modifier.align(BelowPlane))
                 Phase.GameOver -> GameOverCard(
                     vm.score, vm.best, vm.newBest, Difficulty.medal(vm.score), unit,
                     Modifier.align(Alignment.Center),
@@ -167,33 +184,122 @@ private fun Hint(text: String, unit: Float, modifier: Modifier) {
     ) { Label(text, unit) }
 }
 
+/** White paper card shared by the pause and game over dialogs; pops in so its cause and effect read clearly. */
 @Composable
-fun GameOverCard(score: Int, best: Int, newBest: Boolean, medal: Medal, textUnit: Float, modifier: Modifier = Modifier) {
+private fun PopCard(modifier: Modifier, content: @Composable ColumnScope.() -> Unit) {
+    val pop = remember { Animatable(0f) }
+    LaunchedEffect(Unit) { pop.animateTo(1f, spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessMediumLow)) }
     Column(
         modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(Color(0xF2FFFFFF))
-            .padding(horizontal = 32.dp, vertical = 20.dp),
+            .graphicsLayer {
+                val s = 0.85f + 0.15f * pop.value
+                scaleX = s; scaleY = s; alpha = pop.value.coerceIn(0f, 1f)
+            }
+            // Flat drop shadow drawn in the card's own layer, so it fades and scales with the pop-in.
+            // An elevation shadow flickered as a dark box while the layer alpha animated.
+            // While fading, the layer renders offscreen clipped to its bounds; this room keeps the shadow inside them.
+            .padding(bottom = 6.dp)
+            .drawBehind {
+                drawRoundRect(
+                    Palette.Ink.copy(alpha = 0.18f),
+                    topLeft = Offset(0f, 6.dp.toPx()),
+                    size = size,
+                    cornerRadius = CornerRadius(28.dp.toPx()),
+                )
+            }
+            .background(Color.White, CardShape)
+            .border(2.dp, Palette.CloudShade, CardShape)
+            .padding(horizontal = 24.dp, vertical = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Label("Game over", textUnit * 1.3f)
-        if (medal != Medal.None) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+        content = content,
+    )
+}
+
+/** The one thing to do next; tapping anywhere does it, so this is a label styled as the primary action. */
+@Composable
+private fun ActionPill(text: String, unit: Float) {
+    Label(
+        text, unit * 0.75f,
+        Modifier.background(Palette.Ink, CircleShape).padding(horizontal = 24.dp, vertical = 10.dp),
+        color = Color.White,
+    )
+}
+
+@Composable
+fun PauseCard(textUnit: Float, modifier: Modifier = Modifier) {
+    PopCard(modifier) {
+        // Pause glyph backs up the title so the state isn't carried by text alone.
+        Row(
+            Modifier
+                .size((textUnit * 2.4f).dp)
+                .background(Palette.CloudShade, CircleShape),
+            horizontalArrangement = Arrangement.spacedBy((textUnit * 0.3f).dp, Alignment.CenterHorizontally),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            repeat(2) {
                 Box(
                     Modifier
-                        .size((textUnit * 1.6f).dp)
-                        .clip(CircleShape)
-                        .background(medal.color)
-                        .border(3.dp, Color(0x55000000), CircleShape),
+                        .size((textUnit * 0.32f).dp, (textUnit * 1.0f).dp)
+                        .background(Palette.Ink, RoundedCornerShape(50)),
                 )
-                Label("${medal.name} medal", textUnit)
             }
         }
-        Label("Score $score", textUnit)
-        Label("Best $best", textUnit)
-        if (newBest) Label("New best!", textUnit, color = Color(0xFFD9466B))
-        Label("Tap or press OK", textUnit * 0.7f)
+        Label("Paused", textUnit * 1.5f)
+        ActionPill("Tap or press OK to go on", textUnit)
+        Label("Press Back again to quit", textUnit * 0.65f, color = Palette.Ink.copy(alpha = 0.8f))
+    }
+}
+
+@Composable
+fun GameOverCard(score: Int, best: Int, newBest: Boolean, medal: Medal, textUnit: Float, modifier: Modifier = Modifier) {
+    PopCard(modifier) {
+        Label("Game over", textUnit * 1.5f)
+        if (medal != Medal.None) MedalBadge(medal, textUnit)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Stat("Score", score, textUnit)
+            Stat("Best", best, textUnit)
+        }
+        if (newBest) {
+            Label(
+                "New best!", textUnit * 0.8f,
+                Modifier.background(Palette.Highlight, CircleShape).padding(horizontal = 16.dp, vertical = 6.dp),
+                color = Color.White,
+            )
+        }
+        ActionPill("Tap or press OK", textUnit)
+    }
+}
+
+private val CardShape = RoundedCornerShape(28.dp)
+
+/** One number with a small caption; read aloud as "Score 27". */
+@Composable
+private fun Stat(caption: String, value: Int, unit: Float) {
+    Column(
+        Modifier
+            .background(Palette.CloudShade, RoundedCornerShape(16.dp))
+            .padding(horizontal = 20.dp, vertical = 10.dp)
+            .clearAndSetSemantics { contentDescription = "$caption $value" },
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Label(caption.uppercase(), unit * 0.6f, color = Palette.Ink.copy(alpha = 0.8f))
+        Label("$value", unit * 1.6f)
+    }
+}
+
+@Composable
+private fun MedalBadge(medal: Medal, unit: Float) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Box(
+            Modifier
+                .size((unit * 1.8f).dp)
+                .background(medal.color, CircleShape)
+                .border(3.dp, Color(0x40000000), CircleShape)
+                .padding(6.dp)
+                .border(2.dp, Color(0x99FFFFFF), CircleShape),
+        )
+        Label("${medal.name} medal", unit)
     }
 }
 

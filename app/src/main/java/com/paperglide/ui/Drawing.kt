@@ -21,10 +21,6 @@ import com.paperglide.game.Phase
 
 object Palette {
     val CloudShade = Color(0xFFDCEAF6)
-    val Ground = Color(0xFFB7E86A)
-    val GroundStripe = Color(0xFF9FD458)
-    val NightGround = Color(0xFF3E6B3A)
-    val NightGroundStripe = Color(0xFF345C31)
     val Moon = Color(0xFFFFF6D8)
     val MoonCrater = Color(0xFFEDE2BC)
     val Star = Color(0xFFFFFFFF)
@@ -32,6 +28,7 @@ object Palette {
     val PlaneShade = Color(0xFFD3E1EE)
     val PlaneFold = Color(0xFFF4B6C2)
     val Ink = Color(0xFF23415A)
+    val Highlight = Color(0xFFC2365A) // white text on it passes 4.5:1
 }
 
 /** Paper plane shapes in plane-radius units, centred on the hitbox; built once. */
@@ -48,7 +45,7 @@ class Stars {
     }
 }
 
-fun DrawScope.drawWorld(engine: GameEngine, plane: PlaneShapes, stars: Stars, traffic: SkyTraffic, airliner: AirlinerShapes) {
+fun DrawScope.drawWorld(engine: GameEngine, plane: PlaneShapes, stars: Stars, traffic: SkyTraffic, airliner: AirlinerShapes, critters: Critters) {
     val s = size.height
     val sky = DayCycle.at(engine.playTime)
     // shortcut: one small gradient object per frame; cache by colour if GC shows up on low-end TV boxes
@@ -112,15 +109,7 @@ fun DrawScope.drawWorld(engine: GameEngine, plane: PlaneShapes, stars: Stars, tr
         drawCuteFace(Offset(left + w / 2, bottom + r * 1.1f), w * 0.55f, 1f, sleepy = sky.night > 0.5f)
     }
 
-    drawRect(lerp(Palette.Ground, Palette.NightGround, sky.night), Offset(0f, GROUND_TOP * s), Size(size.width, size.height - GROUND_TOP * s))
-    val stripeColor = lerp(Palette.GroundStripe, Palette.NightGroundStripe, sky.night)
-    val stripe = 0.08f * s
-    val shift = (engine.pillars.firstOrNull()?.x ?: 0f) * s
-    var x = shift.mod(stripe * 2) - stripe * 2
-    while (x < size.width) {
-        drawRect(stripeColor, Offset(x, GROUND_TOP * s), Size(stripe, 0.012f * s))
-        x += stripe * 2
-    }
+    drawMeadow(engine.distance, sky.night, engine.time, critters)
 
     val tilt = if (engine.phase == Phase.Ready) 0f else (engine.velocity * 30f).coerceIn(-25f, 60f)
     val k = PLANE_RADIUS * s

@@ -55,7 +55,7 @@ class GameFlowTest {
             advance(0.05f); waited += 0.05f
         }
         rule.onNodeWithText("Game over").assertIsDisplayed()
-        rule.onNodeWithText("Score 0").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Score 0").assertIsDisplayed()
         // Within the input lock a tap is ignored.
         tapScreen()
         advance(0.05f)
@@ -94,8 +94,8 @@ class GameOverCardTest {
     @Test
     fun silverWithoutNewBest() {
         rule.setContent { GameOverCard(score = 27, best = 30, newBest = false, medal = Medal.Silver, textUnit = 20f) }
-        rule.onNodeWithText("Score 27").assertIsDisplayed()
-        rule.onNodeWithText("Best 30").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Score 27").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Best 30").assertIsDisplayed()
         rule.onNodeWithText("Silver medal").assertIsDisplayed()
         rule.onNodeWithText("New best!").assertDoesNotExist()
     }
@@ -105,5 +105,13 @@ class GameOverCardTest {
         rule.setContent { GameOverCard(score = 9, best = 9, newBest = true, medal = Medal.None, textUnit = 20f) }
         rule.onNodeWithText("New best!").assertIsDisplayed()
         rule.onNodeWithText("medal", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun pauseCardSaysHowToGoOnAndQuit() {
+        rule.setContent { PauseCard(textUnit = 20f) }
+        rule.onNodeWithText("Paused").assertIsDisplayed()
+        rule.onNodeWithText("Tap or press OK to go on").assertIsDisplayed()
+        rule.onNodeWithText("Press Back again to quit").assertIsDisplayed()
     }
 }

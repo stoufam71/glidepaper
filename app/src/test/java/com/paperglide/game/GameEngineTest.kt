@@ -272,4 +272,14 @@ class GameEngineTest {
         assertEquals(Phase.Playing, e.phase)
         assertTrue(e.autopilot)
     }
+
+    @Test
+    fun distanceGrowsOnlyWhilePlaying() {
+        val e = engine()
+        e.run(1f)
+        assertEquals(0f, e.distance, 0f)
+        e.flap()
+        e.run(0.5f)
+        assertTrue(e.distance > 0f)
+    }
 }
