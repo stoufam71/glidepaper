@@ -30,6 +30,9 @@ class GameEngine(private val random: Random = Random.Default) {
     /** Seconds since launch; drives idle animation. */
     var time = 0f
         private set
+    /** Seconds of actual play this round; drives the day/night sky. */
+    var playTime = 0f
+        private set
 
     /** Visible world width; pillars spawn just past it. */
     var visibleWidth = 0.5625f
@@ -83,6 +86,7 @@ class GameEngine(private val random: Random = Random.Default) {
     private fun reset() {
         phase = Phase.Ready
         score = 0
+        playTime = 0f
         planeY = START_Y
         velocity = 0f
         _pillars.clear()
@@ -90,6 +94,7 @@ class GameEngine(private val random: Random = Random.Default) {
     }
 
     private fun play(dt: Float) {
+        playTime += dt
         velocity = (velocity + GRAVITY * dt).coerceAtMost(MAX_FALL)
         planeY += velocity * dt
 

@@ -12,11 +12,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
@@ -35,7 +37,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -55,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.paperglide.GameViewModel
 import com.paperglide.game.Difficulty
+import com.paperglide.game.GameEngine
 import com.paperglide.game.Medal
 import com.paperglide.game.Phase
 
@@ -62,7 +66,7 @@ import com.paperglide.game.Phase
 fun GameScreen(vm: GameViewModel, onMuteFocus: (Boolean) -> Unit = {}) {
     var aspect by remember { mutableFloatStateOf(0.5625f) }
     val plane = remember { PlaneShapes() }
-    val sky = remember { Brush.verticalGradient(listOf(Palette.SkyTop, Palette.SkyBottom)) }
+    val stars = remember { Stars() }
     val playFocus = remember { FocusRequester() }
 
     LaunchedEffect(vm) {
@@ -80,6 +84,7 @@ fun GameScreen(vm: GameViewModel, onMuteFocus: (Boolean) -> Unit = {}) {
         val unit = with(LocalDensity.current) {
             minOf(maxHeight.toPx() * 0.032f, maxWidth.toPx() * 0.06f).toSp().value
         }
+        val freeSky = minOf(maxWidth, maxHeight * FREE_SKY)
 
         Canvas(
             Modifier
@@ -88,7 +93,7 @@ fun GameScreen(vm: GameViewModel, onMuteFocus: (Boolean) -> Unit = {}) {
                 .pointerInput(vm) { awaitEachGesture { awaitFirstDown(); vm.flap() } },
         ) {
             vm.frame // redraw every tick
-            drawWorld(vm.engine, sky, plane)
+            drawWorld(vm.engine, plane, stars)
         }
 
         // Holds D-pad focus during play so TV OK flaps instead of landing on the mute button.
@@ -97,10 +102,16 @@ fun GameScreen(vm: GameViewModel, onMuteFocus: (Boolean) -> Unit = {}) {
 
         Box(Modifier.fillMaxSize().safeDrawingPadding()) {
             if (vm.phase != Phase.Ready) {
-                Label("${vm.score}", unit * 1.6f, Modifier.align(Alignment.TopCenter).padding(top = 16.dp))
+                Label(
+                    "${vm.score}", unit * 1.6f, Modifier.align(Alignment.TopCenter).padding(top = 16.dp),
+                    color = Color.White, shadow = true,
+                )
             }
             when (vm.phase) {
-                Phase.Ready -> Hint("Tap or press OK to fly", unit, Modifier.align(BelowPlane))
+                // Centre the hint in the open sky before the first pillar so it never covers one.
+                Phase.Ready -> Box(Modifier.width(freeSky).fillMaxHeight()) {
+                    Hint("Tap or press OK to fly", unit, Modifier.align(BelowPlane))
+                }
                 Phase.Paused -> Hint("Paused\nTap or press OK to go on\nBack again to quit", unit, Modifier.align(BelowPlane))
                 Phase.GameOver -> GameOverCard(
                     vm.score, vm.best, vm.newBest, Difficulty.medal(vm.score), unit,
@@ -116,12 +127,24 @@ fun GameScreen(vm: GameViewModel, onMuteFocus: (Boolean) -> Unit = {}) {
 /** Hints sit under the plane's hover height so they never cover it. */
 private val BelowPlane = BiasAlignment(0f, 0.35f)
 
+/** Screen-height multiples free of pillars at the start of a round. */
+private const val FREE_SKY = GameEngine.PLANE_X + GameEngine.FIRST_PILLAR_DISTANCE
+
 @Composable
-private fun Label(text: String, size: Float, modifier: Modifier = Modifier, color: Color = Palette.Ink) {
+private fun Label(
+    text: String,
+    size: Float,
+    modifier: Modifier = Modifier,
+    color: Color = Palette.Ink,
+    shadow: Boolean = false,
+) {
     BasicText(
         text,
         modifier,
-        style = TextStyle(color = color, fontSize = size.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
+        style = TextStyle(
+            color = color, fontSize = size.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center,
+            shadow = if (shadow) Shadow(Palette.Ink, Offset(0f, 3f), 6f) else null,
+        ),
     )
 }
 

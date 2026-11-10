@@ -170,4 +170,24 @@ class GameEngineTest {
         assertEquals(x - Difficulty.speed(0) * GameEngine.MAX_DT, e.pillars.first().x, 1e-5f)
         assertFalse(e.phase == Phase.GameOver && e.planeY < GameEngine.GROUND_TOP - 0.2f)
     }
+
+    @Test
+    fun playTimeCountsOnlyWhilePlayingAndResetsEachRound() {
+        val e = engine()
+        e.run(1f)
+        assertEquals(0f, e.playTime, 0f)
+        e.flap()
+        e.run(0.5f)
+        val played = e.playTime
+        assertTrue(played > 0.4f)
+        e.pause(); e.run(1f)
+        assertEquals(played, e.playTime, 0f)
+        e.flap(); e.run(5f)
+        val atCrash = e.playTime
+        e.run(1f, throughGameOver = true)
+        assertEquals(atCrash, e.playTime, 0f)
+        e.flap()
+        assertEquals(Phase.Ready, e.phase)
+        assertEquals(0f, e.playTime, 0f)
+    }
 }

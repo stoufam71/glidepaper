@@ -6,8 +6,10 @@ import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.lifecycle.Lifecycle
 import com.paperglide.MainActivity
+import com.paperglide.game.GameEngine
 import com.paperglide.game.Phase
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -102,5 +104,23 @@ class TvFlowTest {
         advance(0.05f)
         rule.onNodeWithContentDescription(after, useUnmergedTree = true).assertIsDisplayed()
         assertEquals(Phase.Ready, phase)
+    }
+}
+
+@RunWith(RobolectricTestRunner::class)
+@Config(qualifiers = "w960dp-h540dp-land-television")
+class TvHintLayoutTest {
+
+    @get:Rule
+    val rule = createAndroidComposeRule<MainActivity>()
+
+    @Test
+    fun readyHintSitsLeftOfFirstPillar() {
+        rule.mainClock.autoAdvance = false
+        rule.mainClock.advanceTimeBy(100)
+        val hint = rule.onNodeWithText("Tap or press OK to fly").fetchSemanticsNode().boundsInRoot
+        val root = rule.onRoot().fetchSemanticsNode().boundsInRoot
+        val firstPillarLeft = (GameEngine.PLANE_X + GameEngine.FIRST_PILLAR_DISTANCE) * root.height
+        assertTrue("hint right ${hint.right} vs pillar $firstPillarLeft", hint.right < firstPillarLeft)
     }
 }
