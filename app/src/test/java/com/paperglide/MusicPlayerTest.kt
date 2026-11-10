@@ -5,11 +5,13 @@ import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.shadows.ShadowMediaPlayer
 import org.robolectric.shadows.util.DataSource
 
@@ -30,10 +32,22 @@ class MusicPlayerTest {
     private val playing get() = music.player!!.isPlaying
 
     @Test
-    fun loopsAndPlaysInForegroundWithSoundOn() {
+    fun playsInForegroundWithSoundOn() {
         music.update(foreground = true, muted = false)
         assertTrue(playing)
-        assertTrue(music.player!!.isLooping)
+    }
+
+    @Test
+    fun finishedCopyHandsOverToTheQueuedOneForAGaplessLoop() {
+        val first = music.player!!
+        music.update(foreground = true, muted = false)
+        shadowOf(first).invokeCompletionListener()
+        val second = music.player!!
+        assertNotSame(first, second)
+        // The platform starts the queued copy itself; pausing must now reach it.
+        second.start()
+        music.update(foreground = false, muted = false)
+        assertFalse(second.isPlaying)
     }
 
     @Test
