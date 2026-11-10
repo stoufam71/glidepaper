@@ -33,14 +33,14 @@ class ManifestTest {
 
     @Test
     fun phoneLocksPortrait() {
-        val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
+        val activity = Robolectric.buildActivity(MainActivity::class.java).create().get()
         assertEquals(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT, activity.requestedOrientation)
     }
 
     @Test
     @Config(qualifiers = "television")
     fun tvDoesNotLockPortrait() {
-        val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
+        val activity = Robolectric.buildActivity(MainActivity::class.java).create().get()
         assertNotEquals(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT, activity.requestedOrientation)
     }
 }
