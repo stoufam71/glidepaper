@@ -16,6 +16,8 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
 
     val engine = GameEngine()
     private val store = GameStore(app)
+    private val tones = TonePlayer()
+    private val feedback = Feedback(app, tones::play)
 
     /** Bumped every tick so the canvas redraws. */
     var frame by mutableLongStateOf(0L)
@@ -53,8 +55,11 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         store.muted = muted
     }
 
+    override fun onCleared() = tones.release()
+
     private fun sync() {
         for (event in engine.drainEvents()) {
+            feedback.on(event, muted)
             if (event == GameEvent.Crash) {
                 newBest = store.record(engine.score)
                 best = store.best
