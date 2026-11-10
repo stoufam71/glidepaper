@@ -76,7 +76,7 @@ fun GameScreen(vm: GameViewModel, onMuteFocus: (Boolean) -> Unit = {}) {
     }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
-        // Text scales with screen height so it reads the same in hand and across a room.
+        // Text scales with the screen (capped by width for narrow phones) so it reads in hand and across a room.
         val unit = with(LocalDensity.current) {
             minOf(maxHeight.toPx() * 0.032f, maxWidth.toPx() * 0.06f).toSp().value
         }

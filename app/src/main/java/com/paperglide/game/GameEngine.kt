@@ -44,7 +44,9 @@ class GameEngine(private val random: Random = Random.Default) {
         fillPillars()
     }
 
-    fun drainEvents(): List<GameEvent> = events.toList().also { events.clear() }
+    /** Called every frame; returns the shared empty list when nothing happened to avoid per-frame garbage. */
+    fun drainEvents(): List<GameEvent> =
+        if (events.isEmpty()) emptyList() else events.toList().also { events.clear() }
 
     fun flap() {
         when (phase) {

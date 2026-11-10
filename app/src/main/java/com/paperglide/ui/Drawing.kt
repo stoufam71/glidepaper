@@ -7,6 +7,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
@@ -111,7 +112,7 @@ fun DrawScope.drawSpeaker(muted: Boolean) {
     } else {
         drawArc(
             Palette.Ink, -50f, 100f, false, Offset(0.42f * w, 0.25f * h), Size(0.4f * w, 0.5f * h),
-            style = androidx.compose.ui.graphics.drawscope.Stroke(stroke),
+            style = Stroke(stroke),
         )
     }
 }
