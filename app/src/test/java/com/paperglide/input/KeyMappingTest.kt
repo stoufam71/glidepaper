@@ -36,4 +36,13 @@ class KeyMappingTest {
             assertFalse("$code", KeyMapping.isFlapKey(code))
         }
     }
+
+    @Test
+    fun secretCodeKeys() {
+        for (code in listOf(KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_1, KeyEvent.KEYCODE_NUMPAD_1)) {
+            assertTrue("$code", KeyMapping.isSecret(down(code)))
+        }
+        assertFalse(KeyMapping.isSecret(down(KeyEvent.KEYCODE_DPAD_DOWN, repeat = 1)))
+        assertFalse(KeyMapping.isSecret(down(KeyEvent.KEYCODE_2)))
+    }
 }

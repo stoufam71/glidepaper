@@ -59,6 +59,10 @@ class MainActivity : ComponentActivity() {
     @SuppressLint("RestrictedApi")
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         val code = event.keyCode
+        if (viewModel.phase == Phase.Ready && KeyMapping.isSecret(event)) {
+            viewModel.secret()
+            return true
+        }
         if (!KeyMapping.isFlapKey(code) || (muteFocused && KeyMapping.isSelectKey(code))) {
             return super.dispatchKeyEvent(event)
         }

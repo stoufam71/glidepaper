@@ -40,7 +40,13 @@ class GameEngine(private val random: Random = Random.Default) {
     private val _pillars = ArrayList<Pillar>()
     val pillars: List<Pillar> get() = _pillars
 
+    /** Easter egg: the plane flies itself and cannot lose. */
+    var autopilot = false
+        private set
+
     private var lockLeft = 0f
+    private var secretPresses = 0
+    private var lastSecretAt = -10f
     private val events = ArrayList<GameEvent>()
 
     init {
@@ -55,11 +61,21 @@ class GameEngine(private val random: Random = Random.Default) {
         when (phase) {
             Phase.Ready, Phase.Paused -> {
                 phase = Phase.Playing
-                lift()
+                if (!autopilot) lift()
             }
-            Phase.Playing -> lift()
+            Phase.Playing -> if (!autopilot) lift()
             Phase.GameOver -> if (lockLeft <= 0f) reset()
         }
+    }
+
+    /** Secret code: four presses within [SECRET_WINDOW] seconds on the Ready screen start autopilot. */
+    fun secretKey() {
+        if (phase != Phase.Ready) return
+        if (time - lastSecretAt > SECRET_WINDOW) secretPresses = 0
+        lastSecretAt = time
+        if (++secretPresses < SECRET_PRESSES) return
+        autopilot = true
+        phase = Phase.Playing
     }
 
     fun pause() {
@@ -72,7 +88,11 @@ class GameEngine(private val random: Random = Random.Default) {
         fillPillars()
         when (phase) {
             Phase.Ready -> planeY = START_Y + sin(time * 4f) * 0.015f
-            Phase.Playing -> play(dt)
+            Phase.Playing -> {
+                // Fixed substeps keep physics (and autopilot) identical on any frame rate.
+                val n = kotlin.math.ceil(dt / SUBSTEP).toInt().coerceAtLeast(1)
+                repeat(n) { if (phase == Phase.Playing) play(dt / n) }
+            }
             Phase.GameOver -> lockLeft -= dt
             Phase.Paused -> Unit
         }
@@ -95,6 +115,7 @@ class GameEngine(private val random: Random = Random.Default) {
 
     private fun play(dt: Float) {
         playTime += dt
+        if (autopilot) steer(dt)
         velocity = (velocity + GRAVITY * dt).coerceAtMost(MAX_FALL)
         planeY += velocity * dt
 
@@ -117,6 +138,18 @@ class GameEngine(private val random: Random = Random.Default) {
         }
     }
 
+    /**
+     * Keeps the plane in the safe band of the gap it is flying through. It flaps when next frame's height would
+     * pass [AUTO_BAND] below the gap centre: low enough that a flap's peak (about v^2 / 2g = 0.156) clears the
+     * top part of the narrowest gap, high enough that the fall never reaches its bottom part.
+     */
+    private fun steer(dt: Float) {
+        val current = _pillars.firstOrNull { it.x + PILLAR_WIDTH >= PLANE_X - PLANE_RADIUS } ?: return
+        val farBelow = planeY > current.gapCenter + AUTO_BAND + AUTO_FAR
+        val climb = if (farBelow) AUTO_FAST_CLIMB_VELOCITY else AUTO_CLIMB_VELOCITY
+        if (planeY + velocity * dt > current.gapCenter + AUTO_BAND && velocity > climb) lift()
+    }
+
     private fun fillPillars() {
         while (true) {
             val last = _pillars.lastOrNull()
@@ -124,8 +157,13 @@ class GameEngine(private val random: Random = Random.Default) {
             val x = last?.let { it.x + SPACING } ?: (PLANE_X + FIRST_PILLAR_DISTANCE)
             if (last != null && x > visibleWidth + PILLAR_WIDTH) return
             val gap = Difficulty.gap(score)
-            val lo = GAP_MARGIN + gap / 2
-            val hi = GROUND_TOP - GAP_MARGIN - gap / 2
+            var lo = GAP_MARGIN + gap / 2
+            var hi = GROUND_TOP - GAP_MARGIN - gap / 2
+            // Autopilot's promise to never lose: keep each gap within reach of the last one.
+            if (autopilot && last != null) {
+                lo = maxOf(lo, last.gapCenter - AUTO_MAX_GAP_STEP)
+                hi = minOf(hi, last.gapCenter + AUTO_MAX_GAP_STEP)
+            }
             _pillars += Pillar(x, lo + random.nextFloat() * (hi - lo), gap)
         }
     }
@@ -156,5 +194,13 @@ class GameEngine(private val random: Random = Random.Default) {
         const val GAP_MARGIN = 0.08f
         const val GAME_OVER_LOCK = 0.6f
         const val MAX_DT = 1f / 30f
+        const val SUBSTEP = 1f / 120f
+        const val SECRET_PRESSES = 4
+        const val SECRET_WINDOW = 2f
+        const val AUTO_BAND = 0.086f
+        const val AUTO_FAR = 0.15f
+        const val AUTO_CLIMB_VELOCITY = -0.2f
+        const val AUTO_FAST_CLIMB_VELOCITY = -0.5f
+        const val AUTO_MAX_GAP_STEP = 0.12f
     }
 }

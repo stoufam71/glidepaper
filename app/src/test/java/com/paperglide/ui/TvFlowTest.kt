@@ -94,6 +94,14 @@ class TvFlowTest {
     }
 
     @Test
+    fun downFourTimesStartsAutopilotThatKeepsFlying() {
+        repeat(4) { press(KeyEvent.KEYCODE_DPAD_DOWN); advance(0.1f) }
+        rule.onNodeWithText("Autopilot").assertIsDisplayed()
+        advance(20f)
+        assertEquals(Phase.Playing, phase)
+    }
+
+    @Test
     fun dpadReachesMuteAndOkTogglesIt() {
         press(KeyEvent.KEYCODE_DPAD_RIGHT)
         advance(0.05f)

@@ -24,7 +24,7 @@ class GameEngineTest {
     }
 
     /** Keeps the plane centred on the next gap by flapping whenever it sinks below it. */
-    private fun GameEngine.autopilot(seconds: Float) {
+    private fun GameEngine.steer(seconds: Float) {
         var t = 0f
         while (t < seconds && phase == Phase.Playing) {
             val target = pillars.firstOrNull { it.x + GameEngine.PILLAR_WIDTH >= GameEngine.PLANE_X }?.gapCenter ?: 0.45f
@@ -74,7 +74,7 @@ class GameEngineTest {
     fun passingAGapScoresOncePerPillar() {
         val e = engine()
         e.flap(); e.drainEvents()
-        e.autopilot(3.5f)
+        e.steer(3.5f)
         val events = e.drainEvents()
         assertEquals(Phase.Playing, e.phase)
         assertTrue(e.score >= 1)
@@ -108,7 +108,7 @@ class GameEngineTest {
                     assertTrue(p.gapCenter - p.gapHeight / 2 >= GameEngine.GAP_MARGIN - 1e-4f)
                     assertTrue(p.gapCenter + p.gapHeight / 2 <= GameEngine.GROUND_TOP - GameEngine.GAP_MARGIN + 1e-4f)
                 }
-                e.autopilot(dt)
+                e.steer(dt)
             }
         }
     }
@@ -189,5 +189,87 @@ class GameEngineTest {
         e.flap()
         assertEquals(Phase.Ready, e.phase)
         assertEquals(0f, e.playTime, 0f)
+    }
+
+    private fun GameEngine.enterSecret() = repeat(4) { secretKey(); step(0.1f) }
+
+    @Test
+    fun fourSecretPressesOnReadyStartAutopilot() {
+        val e = engine()
+        e.enterSecret()
+        assertEquals(Phase.Playing, e.phase)
+        assertTrue(e.autopilot)
+    }
+
+    @Test
+    fun slowSecretPressesDoNothing() {
+        val e = engine()
+        repeat(3) { e.secretKey(); e.step(0.1f) }
+        e.run(2.5f)
+        e.secretKey()
+        assertEquals(Phase.Ready, e.phase)
+        assertFalse(e.autopilot)
+    }
+
+    @Test
+    fun secretOnlyWorksOnReady() {
+        val e = engine()
+        e.flap()
+        e.enterSecret()
+        assertFalse(e.autopilot)
+    }
+
+    @Test
+    fun autopilotNeverLosesOnPhoneOrTv() {
+        for (width in listOf(0.5625f, 1.78f)) {
+            for (seed in 0 until 25) {
+                val e = engine(width = width, seed = seed)
+                e.enterSecret()
+                var t = 0f
+                while (t < 240f) {
+                    e.step(dt); t += dt
+                    assertEquals("width $width seed $seed at ${t}s", Phase.Playing, e.phase)
+                }
+                assertTrue("reached plateau difficulty", e.score > Difficulty.PLATEAU_SCORE)
+            }
+        }
+    }
+
+    @Test
+    fun autopilotSurvivesDroppedFrames() {
+        for (seed in 0 until 10) {
+            val e = engine(width = 1.78f, seed = seed)
+            e.enterSecret()
+            var t = 0f
+            var i = 0
+            while (t < 200f) {
+                val step = if (i++ % 3 == 0) 1f / 30f else 1f / 60f
+                e.step(step); t += step
+                assertEquals("seed $seed at ${t}s", Phase.Playing, e.phase)
+            }
+        }
+    }
+
+    @Test
+    fun manualFlapsCannotBreakAutopilot() {
+        val e = engine()
+        e.enterSecret()
+        var t = 0f
+        while (t < 60f) {
+            e.flap()
+            e.step(dt); t += dt
+        }
+        assertEquals(Phase.Playing, e.phase)
+    }
+
+    @Test
+    fun autopilotSurvivesPauseAndResume() {
+        val e = engine()
+        e.enterSecret()
+        e.run(3f)
+        e.pause()
+        e.flap()
+        assertEquals(Phase.Playing, e.phase)
+        assertTrue(e.autopilot)
     }
 }

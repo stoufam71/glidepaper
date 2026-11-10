@@ -23,4 +23,10 @@ object KeyMapping {
     /** Keys that should click a focused button rather than flap. */
     fun isSelectKey(keyCode: Int) = keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
         keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER
+
+    private val secretKeys = setOf(KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_1, KeyEvent.KEYCODE_NUMPAD_1)
+
+    /** One press of the easter-egg code (Down x4 on a remote, 1111 on digits). */
+    fun isSecret(event: KeyEvent) =
+        event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0 && event.keyCode in secretKeys
 }

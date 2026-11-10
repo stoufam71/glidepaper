@@ -6,7 +6,7 @@ import android.media.MediaPlayer
 import androidx.annotation.VisibleForTesting
 
 /**
- * Background loop "Heavenly Loop" by isaiah658 (CC0, opengameart.org/content/heavenly-loop).
+ * Background loop "Paper Glide Theme" (original, see docs/CREDITS.md).
  * Plays only while the app is in front and sound is on.
  */
 class MusicPlayer(context: Context) {
@@ -16,7 +16,7 @@ class MusicPlayer(context: Context) {
     internal val player: MediaPlayer? = runCatching {
         MediaPlayer.create(
             context,
-            R.raw.bg_music,
+            R.raw.bg_music_paper_glide,
             AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_GAME)
                 .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)

@@ -34,6 +34,8 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         private set
     var muted by mutableStateOf(store.muted)
         private set
+    var autopilot by mutableStateOf(false)
+        private set
 
     fun tick(dt: Float, visibleWidth: Float) {
         engine.visibleWidth = visibleWidth
@@ -52,10 +54,17 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         sync()
     }
 
+    /** On the phone the code is four mute taps; an even count leaves mute as it was. */
     fun toggleMute() {
         muted = !muted
         store.muted = muted
         music.update(foreground, muted)
+        secret()
+    }
+
+    fun secret() {
+        engine.secretKey()
+        sync()
     }
 
     /** Music follows the activity: on while it is resumed, off when it pauses. */
@@ -79,5 +88,6 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         }
         phase = engine.phase
         score = engine.score
+        autopilot = engine.autopilot
     }
 }

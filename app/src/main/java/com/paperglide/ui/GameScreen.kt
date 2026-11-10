@@ -119,6 +119,9 @@ fun GameScreen(vm: GameViewModel, onMuteFocus: (Boolean) -> Unit = {}) {
                 )
                 Phase.Playing -> Unit
             }
+            if (vm.autopilot) {
+                Hint("Autopilot", unit * 0.7f, Modifier.align(Alignment.TopStart).padding(12.dp))
+            }
             MuteButton(vm.muted, vm::toggleMute, onMuteFocus, playFocus, Modifier.align(Alignment.TopEnd).padding(12.dp))
         }
     }

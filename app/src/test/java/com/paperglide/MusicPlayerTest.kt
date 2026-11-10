@@ -21,7 +21,7 @@ class MusicPlayerTest {
 
     @Before
     fun setUp() {
-        val uri = Uri.parse("android.resource://${context.packageName}/${R.raw.bg_music}")
+        val uri = Uri.parse("android.resource://${context.packageName}/${R.raw.bg_music_paper_glide}")
         ShadowMediaPlayer.addMediaInfo(DataSource.toDataSource(context, uri), ShadowMediaPlayer.MediaInfo(33_000, 0))
         music = MusicPlayer(context)
         assertNotNull(music.player)
