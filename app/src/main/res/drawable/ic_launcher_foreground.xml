@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Original folded paper plane. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#FFFFFFFF" android:pathData="M26,54L84,32L50,62Z" />
+    <path android:fillColor="#FFDCE7F2" android:pathData="M50,62L84,32L58,78Z" />
+    <path android:fillColor="#FFF4B6C2" android:pathData="M50,62L58,78L50,72Z" />
+</vector>

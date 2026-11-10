@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TV home-screen banner: paper plane gliding past cloud pillars. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp" android:height="180dp"
+    android:viewportWidth="320" android:viewportHeight="180">
+    <path android:fillColor="#FF9ED8F7" android:pathData="M0,0h320v180h-320z" />
+    <path android:fillColor="#FFFFFFFF" android:fillAlpha="0.85"
+        android:pathData="M230,0h44v62a22,22 0,0 1,-44 0z" />
+    <path android:fillColor="#FFFFFFFF" android:fillAlpha="0.85"
+        android:pathData="M230,180v-50a22,22 0,0 1,44 0v50z" />
+    <path android:fillColor="#FFB7E86A" android:pathData="M0,164h320v16h-320z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M60,96L170,58L106,112Z" />
+    <path android:fillColor="#FFDCE7F2" android:pathData="M106,112L170,58L120,140Z" />
+    <path android:fillColor="#FFF4B6C2" android:pathData="M106,112L120,140L106,128Z" />
+</vector>
