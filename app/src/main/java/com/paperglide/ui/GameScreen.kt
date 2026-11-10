@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
@@ -30,8 +31,15 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
@@ -54,6 +62,7 @@ fun GameScreen(vm: GameViewModel, onMuteFocus: (Boolean) -> Unit = {}) {
     var aspect by remember { mutableFloatStateOf(0.5625f) }
     val plane = remember { PlaneShapes() }
     val sky = remember { Brush.verticalGradient(listOf(Palette.SkyTop, Palette.SkyBottom)) }
+    val playFocus = remember { FocusRequester() }
 
     LaunchedEffect(vm) {
         var last = -1L
@@ -79,6 +88,10 @@ fun GameScreen(vm: GameViewModel, onMuteFocus: (Boolean) -> Unit = {}) {
             drawWorld(vm.engine, sky, plane)
         }
 
+        // Holds D-pad focus during play so TV OK flaps instead of landing on the mute button.
+        Box(Modifier.align(Alignment.CenterStart).size(1.dp).focusRequester(playFocus).focusable())
+        LaunchedEffect(Unit) { playFocus.requestFocus() }
+
         Box(Modifier.fillMaxSize().safeDrawingPadding()) {
             if (vm.phase != Phase.Ready) {
                 Label("${vm.score}", unit * 1.6f, Modifier.align(Alignment.TopCenter).padding(top = 16.dp))
@@ -92,7 +105,7 @@ fun GameScreen(vm: GameViewModel, onMuteFocus: (Boolean) -> Unit = {}) {
                 )
                 Phase.Playing -> Unit
             }
-            MuteButton(vm.muted, vm::toggleMute, onMuteFocus, Modifier.align(Alignment.TopEnd).padding(12.dp))
+            MuteButton(vm.muted, vm::toggleMute, onMuteFocus, playFocus, Modifier.align(Alignment.TopEnd).padding(12.dp))
         }
     }
 }
@@ -155,7 +168,13 @@ private val Medal.color
     }
 
 @Composable
-private fun MuteButton(muted: Boolean, onToggle: () -> Unit, onFocus: (Boolean) -> Unit, modifier: Modifier) {
+private fun MuteButton(
+    muted: Boolean,
+    onToggle: () -> Unit,
+    onFocus: (Boolean) -> Unit,
+    playFocus: FocusRequester,
+    modifier: Modifier,
+) {
     var focused by remember { mutableStateOf(false) }
     Box(
         modifier
@@ -164,6 +183,12 @@ private fun MuteButton(muted: Boolean, onToggle: () -> Unit, onFocus: (Boolean) 
             .background(if (focused) Color(0xFFFFFFFF) else Color(0x99FFFFFF))
             .border(if (focused) 3.dp else 0.dp, Palette.Ink, CircleShape)
             .onFocusChanged { focused = it.isFocused; onFocus(it.isFocused) }
+            // D-pad Left/Down leaves the button so OK flaps again.
+            .onKeyEvent {
+                val leave = it.type == KeyEventType.KeyDown && (it.key == Key.DirectionLeft || it.key == Key.DirectionDown)
+                if (leave) playFocus.requestFocus()
+                leave
+            }
             .clickable(role = Role.Switch, onClick = onToggle)
             .semantics { contentDescription = if (muted) "Unmute sound" else "Mute sound" },
         contentAlignment = Alignment.Center,

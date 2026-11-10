@@ -3,7 +3,7 @@ package com.paperglide
 import android.content.Context
 import androidx.core.content.edit
 
-/** Best score and the mute switch, kept on this device only. */
+/** Best score and the mute switch, kept on this device only. Writes commit at once so a kill right after a crash keeps the best. */
 class GameStore(context: Context) {
 
     private val prefs = context.getSharedPreferences("paper_glide", Context.MODE_PRIVATE)
@@ -12,12 +12,12 @@ class GameStore(context: Context) {
 
     var muted: Boolean
         get() = prefs.getBoolean(KEY_MUTED, false)
-        set(value) = prefs.edit { putBoolean(KEY_MUTED, value) }
+        set(value) = prefs.edit(commit = true) { putBoolean(KEY_MUTED, value) }
 
     /** Saves [score] if it beats the best; returns whether it did. */
     fun record(score: Int): Boolean {
         if (score <= best) return false
-        prefs.edit { putInt(KEY_BEST, score) }
+        prefs.edit(commit = true) { putInt(KEY_BEST, score) }
         return true
     }
 

@@ -3,6 +3,7 @@ package com.paperglide.ui
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -67,11 +68,17 @@ class GameFlowTest {
 
     @Test
     fun muteButtonTogglesWithoutFlapping() {
-        rule.onNodeWithContentDescription("Mute sound").performClick()
+        val before = muteLabel()
+        rule.onNodeWithContentDescription(before).performClick()
         advance(0.1f)
-        rule.onNodeWithContentDescription("Unmute sound").assertIsDisplayed()
+        rule.onNodeWithContentDescription(flipped(before)).assertIsDisplayed()
         rule.onNodeWithText(READY_HINT).assertIsDisplayed()
     }
+
+    private fun muteLabel() =
+        if (rule.onAllNodesWithContentDescription("Mute sound").fetchSemanticsNodes().isNotEmpty()) "Mute sound" else "Unmute sound"
+
+    private fun flipped(label: String) = if (label == "Mute sound") "Unmute sound" else "Mute sound"
 
     private companion object {
         const val READY_HINT = "Tap or press OK to fly"

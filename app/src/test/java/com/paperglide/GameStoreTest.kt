@@ -5,12 +5,16 @@ import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 class GameStoreTest {
+
+    @get:Rule
+    val prefs = ClearPrefsRule()
 
     private val context = ApplicationProvider.getApplicationContext<Context>()
 
