@@ -102,6 +102,15 @@ class TvFlowTest {
     }
 
     @Test
+    fun backLeavesAutopilot() {
+        repeat(4) { press(KeyEvent.KEYCODE_DPAD_DOWN); advance(0.1f) }
+        press(KeyEvent.KEYCODE_BACK)
+        advance(0.1f)
+        assertEquals(Phase.Ready, phase)
+        rule.onNodeWithText("Autopilot").assertDoesNotExist()
+    }
+
+    @Test
     fun dpadReachesMuteAndOkTogglesIt() {
         press(KeyEvent.KEYCODE_DPAD_RIGHT)
         advance(0.05f)

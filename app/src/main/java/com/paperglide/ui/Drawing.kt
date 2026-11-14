@@ -5,6 +5,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -46,7 +47,7 @@ class Stars {
 }
 
 fun DrawScope.drawWorld(engine: GameEngine, plane: PlaneShapes, stars: Stars, traffic: SkyTraffic, airliner: AirlinerShapes, critters: Critters) {
-    val s = size.height
+    val s = worldScale()
     val sky = DayCycle.at(engine.playTime)
     // shortcut: one small gradient object per frame; cache by colour if GC shows up on low-end TV boxes
     drawRect(Brush.verticalGradient(listOf(sky.top, sky.bottom)))
@@ -109,7 +110,7 @@ fun DrawScope.drawWorld(engine: GameEngine, plane: PlaneShapes, stars: Stars, tr
         drawCuteFace(Offset(left + w / 2, bottom + r * 1.1f), w * 0.55f, 1f, sleepy = sky.night > 0.5f)
     }
 
-    drawMeadow(engine.distance, sky.night, engine.time, critters)
+    drawMeadow(s, engine.distance, sky.night, engine.time, critters)
 
     val tilt = if (engine.phase == Phase.Ready) 0f else (engine.velocity * 30f).coerceIn(-25f, 60f)
     val k = PLANE_RADIUS * s
@@ -122,6 +123,19 @@ fun DrawScope.drawWorld(engine: GameEngine, plane: PlaneShapes, stars: Stars, tr
             }
         }
     }
+}
+
+/**
+ * Pixels per world unit. Usually the screen height; on screens narrower than [GameEngine.MIN_VIEW_WIDTH] the world
+ * zooms out so the next pillar shows in time, and the spare height below fills with meadow (a thumb rest on phones).
+ */
+fun DrawScope.worldScale() = minOf(size.height, size.width / GameEngine.MIN_VIEW_WIDTH)
+
+/** X glyph for closing or exiting. */
+fun DrawScope.drawClose() {
+    val stroke = size.minDimension * 0.16f
+    drawLine(Palette.Ink, Offset(stroke, stroke), Offset(size.width - stroke, size.height - stroke), stroke, StrokeCap.Round)
+    drawLine(Palette.Ink, Offset(size.width - stroke, stroke), Offset(stroke, size.height - stroke), stroke, StrokeCap.Round)
 }
 
 /** Speaker glyph for the mute button; a slash marks muted. */

@@ -221,7 +221,7 @@ class GameEngineTest {
 
     @Test
     fun autopilotNeverLosesOnPhoneOrTv() {
-        for (width in listOf(0.5625f, 1.78f)) {
+        for (width in listOf(0.5625f, GameEngine.MIN_VIEW_WIDTH, 1.78f)) {
             for (seed in 0 until 25) {
                 val e = engine(width = width, seed = seed)
                 e.enterSecret()
@@ -260,6 +260,19 @@ class GameEngineTest {
             e.step(dt); t += dt
         }
         assertEquals(Phase.Playing, e.phase)
+    }
+
+    @Test
+    fun stoppingAutopilotStartsAFreshNormalRound() {
+        val e = engine()
+        e.enterSecret()
+        e.run(5f)
+        e.stopAutopilot()
+        assertFalse(e.autopilot)
+        assertEquals(Phase.Ready, e.phase)
+        assertEquals(0, e.score)
+        e.flap()
+        assertTrue("manual flap lifts again", e.velocity < 0f)
     }
 
     @Test

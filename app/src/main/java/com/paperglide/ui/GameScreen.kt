@@ -104,12 +104,12 @@ fun GameScreen(vm: GameViewModel, onMuteFocus: (Boolean) -> Unit = {}) {
         val unit = with(LocalDensity.current) {
             minOf(maxHeight.toPx() * 0.032f, maxWidth.toPx() * 0.06f).toSp().value
         }
-        val freeSky = minOf(maxWidth, maxHeight * FREE_SKY)
+        val freeSky = minOf(maxWidth, minOf(maxHeight, maxWidth / GameEngine.MIN_VIEW_WIDTH) * FREE_SKY)
 
         Canvas(
             Modifier
                 .fillMaxSize()
-                .onSizeChanged { if (it.height > 0) aspect = it.width.toFloat() / it.height }
+                .onSizeChanged { if (it.height > 0) aspect = maxOf(it.width.toFloat() / it.height, GameEngine.MIN_VIEW_WIDTH) }
                 .pointerInput(vm) { awaitEachGesture { awaitFirstDown(); vm.flap() } },
         ) {
             vm.frame // redraw every tick
@@ -143,7 +143,7 @@ fun GameScreen(vm: GameViewModel, onMuteFocus: (Boolean) -> Unit = {}) {
                 Phase.Playing -> Unit
             }
             if (vm.autopilot) {
-                Hint("Autopilot", unit * 0.7f, Modifier.align(Alignment.TopStart).padding(12.dp))
+                AutopilotChip(vm::stopAutopilot, unit * 0.7f, Modifier.align(Alignment.TopStart).padding(12.dp))
             }
             MuteButton(vm.muted, vm::toggleMute, onMuteFocus, playFocus, Modifier.align(Alignment.TopEnd).padding(12.dp))
         }
@@ -182,6 +182,24 @@ private fun Hint(text: String, unit: Float, modifier: Modifier) {
             .background(Color(0xCCFFFFFF))
             .padding(horizontal = 24.dp, vertical = 16.dp),
     ) { Label(text, unit) }
+}
+
+/** Shows autopilot is on; tapping it (or Back) hands control back with a fresh round. */
+@Composable
+private fun AutopilotChip(onExit: () -> Unit, unit: Float, modifier: Modifier) {
+    Row(
+        modifier
+            .sizeIn(minHeight = 48.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color(0xCCFFFFFF))
+            .clickable(onClickLabel = "Exit autopilot", onClick = onExit)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Label("Autopilot", unit)
+        Canvas(Modifier.size(20.dp)) { drawClose() }
+    }
 }
 
 /** White paper card shared by the pause and game over dialogs; pops in so its cause and effect read clearly. */

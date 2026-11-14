@@ -38,8 +38,7 @@ private val ChickBeak = Path().apply { moveTo(0f, -0.5f); lineTo(-1f, 0f); lineT
  * Rolling grass with tufts and little flowers that scroll with the world, and baby animals walking on it.
  * Everything sits on or below [GROUND_TOP] except the soft grass bumps, so a crash still looks like touching ground.
  */
-fun DrawScope.drawMeadow(distance: Float, night: Float, time: Float, critters: Critters) {
-    val s = size.height
+fun DrawScope.drawMeadow(s: Float, distance: Float, night: Float, time: Float, critters: Critters) {
     val g = GROUND_TOP * s
     val scroll = distance * s
     fun dusk(c: Color) = lerp(c, NightTint, 0.7f * night)

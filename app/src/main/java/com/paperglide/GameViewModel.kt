@@ -67,6 +67,11 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         sync()
     }
 
+    fun stopAutopilot() {
+        engine.stopAutopilot()
+        sync()
+    }
+
     /** Music follows the activity: on while it is resumed, off when it pauses. */
     fun setForeground(value: Boolean) {
         foreground = value

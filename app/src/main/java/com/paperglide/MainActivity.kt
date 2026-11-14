@@ -48,7 +48,11 @@ class MainActivity : ComponentActivity() {
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (viewModel.phase == Phase.Playing) viewModel.pause() else finish()
+                when {
+                    viewModel.autopilot -> viewModel.stopAutopilot()
+                    viewModel.phase == Phase.Playing -> viewModel.pause()
+                    else -> finish()
+                }
             }
         })
 

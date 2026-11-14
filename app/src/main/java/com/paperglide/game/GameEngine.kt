@@ -81,6 +81,13 @@ class GameEngine(private val random: Random = Random.Default) {
         phase = Phase.Playing
     }
 
+    /** Leaves autopilot for a fresh, normal round on the Ready screen. */
+    fun stopAutopilot() {
+        if (!autopilot) return
+        autopilot = false
+        reset()
+    }
+
     fun pause() {
         if (phase == Phase.Playing) phase = Phase.Paused
     }
@@ -206,5 +213,7 @@ class GameEngine(private val random: Random = Random.Default) {
         const val AUTO_CLIMB_VELOCITY = -0.2f
         const val AUTO_FAST_CLIMB_VELOCITY = -0.5f
         const val AUTO_MAX_GAP_STEP = 0.12f
+        /** Narrowest world width shown; narrower (portrait phone) screens zoom out so the next pillar is visible. */
+        const val MIN_VIEW_WIDTH = 0.7f
     }
 }
